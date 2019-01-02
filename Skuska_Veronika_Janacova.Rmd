@@ -1,0 +1,422 @@
+---
+title: "Skuska Veronika Janacova"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Popis dat
+U 60 pacientov bola meranáveľkosť ľavej srdcovej komory pomocou dvoch rôznych diagnostických metód: Magnetická rezonancia (MR) a Sonografia (ECHO).
+Ďalej máme údaje o ejekčnej frakcii (EF) zmeranej pomocou MR a aj pomocou ECHA.
+
+Dataset mám z iného predmetu (spracovanie experimentálnych údajov 2014)
+
+Poprosím Vás, ak Vám to nefunguje, importujte si súbor Data.xlsx z repozitára.
+```{r}
+library(tidyverse)
+library(readxl)
+Data <- read_excel("Data.xlsx")
+View(Data)
+head(Data)
+
+```
+
+
+
+Chceme urobiť popisnú štatistiku pre 4 skupiny: Muzi_MR, Zeny_MR, Muzi_ECHO, Zeny_ECHO.
+Dáta si pripravíme.
+
+```{r}
+Muzi_MR <- Data
+transmute(Muzi_MR,
+    id = pacient,
+    pohlavie = pohlavie,
+    LK_MR = LK_cm_MR
+  ) %>% 
+    filter(pohlavie == "M") -> Muzi_MR
+Muzi_MR
+
+Muzi_ECHO <- Data
+transmute(Muzi_ECHO,
+    id = pacient,
+    pohlavie = pohlavie,
+    LK_ECHO = LK_cm_ECHO
+  ) %>% 
+    filter(pohlavie == "M") -> Muzi_ECHO
+Muzi_ECHO
+
+Zeny_MR <- Data
+transmute(Zeny_MR,
+    id = pacient,
+    pohlavie = pohlavie,
+    LK_MR = LK_cm_MR
+  ) %>% 
+    filter(pohlavie == "Z") -> Zeny_MR
+Zeny_MR
+
+Zeny_ECHO <- Data
+transmute(Zeny_ECHO,
+    id = pacient,
+    pohlavie = pohlavie,
+    LK_ECHO = LK_cm_ECHO
+  ) %>% 
+    filter(pohlavie == "Z") -> Zeny_ECHO
+Zeny_ECHO
+
+```
+
+
+A teraz môžeme urobiť popis dát.
+ 
+```{r}
+summary(Muzi_MR)
+summary(Muzi_ECHO)
+summary(Zeny_MR)
+summary(Zeny_ECHO)
+
+```
+
+
+
+## Analýza
+
+Chceme zistiť, či je signifikantný rozdiel medzi zmeranou veľkosťou LK metódou MR a metódou ECHO. Môžeme sa na to pozrieť v rámci skupín (odlišné pohlavie) alebo celkovo.
+To sa dá spraviť viacerými spôsobmi:
+
+a) iba správnou vizualizáciou dát,
+b) regresnou analýzou,
+c) párovym parametrickým alebo neparametrickým testom.
+
+
+*a) vizualizácia dát*
+
+Najprv sa pozrieme všeobecne:
+
+```{r}
+Velkost_LK <- Data
+
+transmute(Velkost_LK ,
+    id = pacient,
+    pohlavie = pohlavie,
+    LK_MR = LK_cm_MR,
+    LK_ECHO = LK_cm_ECHO
+  ) -> Velkost_LK 
+
+ggplot(Velkost_LK, aes(x = LK_MR, y = LK_ECHO)) +
+    geom_point()
+```
+
+
+Potrebujeme si to zobraziť trošku inak. Spravíme si mierku 1:1, ale aby sme to mohli spraviť, potrebujeme si trošku preusporiadať tabuľku.
+
+
+```{r}
+Velkost_LK %>%
+  gather(`LK_MR`,`LK_ECHO`, key = "Metoda", value = "Velkost") -> Tidy_velkost_LK
+Tidy_velkost_LK
+
+```
+
+```{r}
+lims <- c(min(Tidy_velkost_LK$Velkost, na.rm = T), max(Tidy_velkost_LK$Velkost, na.rm = T))
+Plot1 <-
+    ggplot(Velkost_LK, aes(x = LK_MR, y = LK_ECHO)) +
+    geom_point() +
+    geom_abline() + 
+    scale_x_continuous(limits = lims) +
+    scale_y_continuous(limits = lims) +
+    theme(aspect.ratio = 1)
+Plot1
+```
+
+Z grafu vidíme, že priamka prechádza tak, 6e viac bodov je pod ňou a teda to nasvedčuje tomu, že MR ukazuje väčiu veľkosť ĽK ako ECHO.
+Takto isto sa na to možeme pozrieť pre obe pohlavia zvlášť. 
+
+```{r}
+Velkost_LK_M <- Data
+
+transmute(Velkost_LK_M ,
+    id = pacient,
+    pohlavie = pohlavie,
+    LK_MR = LK_cm_MR,
+    LK_ECHO = LK_cm_ECHO
+  ) %>% filter (pohlavie =="M") -> Velkost_LK_M 
+
+Velkost_LK_M %>%
+  gather(`LK_MR`,`LK_ECHO`, key = "Metoda", value = "Velkost") -> Tidy_velkost_LK_M
+Tidy_velkost_LK_M
+```
+
+```{r}
+lims2 <- c(min(Tidy_velkost_LK_M$Velkost, na.rm = T), max(Tidy_velkost_LK_M$Velkost, na.rm = T))
+Plot2 <-
+    ggplot(Velkost_LK_M, aes(x = LK_MR, y = LK_ECHO))+
+    geom_point() +
+    geom_abline() + 
+    scale_x_continuous(limits = lims) +
+    scale_y_continuous(limits = lims) +
+    theme(aspect.ratio = 1)
+Plot2 +  ggtitle("Muzi LK")
+```
+
+Vidíme, že výsledok je veľmi podobný. Rovnakým spôsobom analyzujeme veĺkosť ĽK u žien.
+
+```{r}
+Velkost_LK_Z <- Data
+
+transmute(Velkost_LK_Z ,
+    id = pacient,
+    pohlavie = pohlavie,
+    LK_MR = LK_cm_MR,
+    LK_ECHO = LK_cm_ECHO
+  ) %>% filter (pohlavie =="Z") -> Velkost_LK_Z 
+
+Velkost_LK_Z %>%
+  gather(`LK_MR`,`LK_ECHO`, key = "Metoda", value = "Velkost") -> Tidy_velkost_LK_Z
+Tidy_velkost_LK_Z
+```
+
+```{r}
+lims3 <- c(min(Tidy_velkost_LK_Z$Velkost, na.rm = T), max(Tidy_velkost_LK_Z$Velkost, na.rm = T))
+Plot3 <-
+    ggplot(Velkost_LK_Z, aes(x = LK_MR, y = LK_ECHO))+
+    geom_point() +
+    geom_abline() + 
+    scale_x_continuous(limits = lims) +
+    scale_y_continuous(limits = lims) +
+    theme(aspect.ratio = 1)
+Plot3 + ggtitle("Zeny LK")
+```
+
+V prípade žien to vyzerá, že MR ukazuje väčšie veľkosti ĽK.
+
+Keďže žien je v našich dátach oveľa menej ako mužov, ďalej budem analyzovať obe pohlavia dokopy. (Vždy sa dá vyfiltrovať jedno pohlavie a spraviť rovnaký postup).
+
+*b) lineárna regresia*
+
+To, či je rozdiel medzi zmeranou veľkosťou ľavej komory pomocou magnetickej rezonancie a sonografiou vieme zitiť aj tak, že si položíme inú otázku. Ako spolu korelujú? Aký je korelačný koeficient?
+
+Fitneme to lineárnym modelom:
+
+```{r}
+fit<- lm(LK_MR ~ LK_ECHO, data = Velkost_LK)
+summary(fit)
+plot(fit)
+```
+
+Ak by boli metódy úplne rovnocenné, čakali by sme, že smernica bude rovná 1. V našom modeli je smernica 0,90582. Je to blízko jednotke a aj korelačný koeficient R svedčí o tom, že medzi 2 metódami je silný vzťah. To, či sa dajú veľkosti LK zmerané MR a ECHOm považovať za rovnaké, by však už musel posúdiť odborník. Usudzujeme, že rozdiely môžu byť spôsobené aj tým, že pacient sa počas zákroku pohne, hrudník sa pri dýchaní pohybuje a posudzovanie obrazu z MR a ECHA je veľmi subjektívne a my nemáme informáciu o tom, či všetky veľkosti vyhodnocovala jedna osoba.
+
+
+*c) Ak by sme veľmi chceli, môžeme použiť t test (treba overiť normalitu).*
+
+Dáta si vizualizujeme:
+
+
+```{r}
+ggplot(Tidy_velkost_LK, aes(x = Metoda, y = Velkost, color = Metoda)) +
+  geom_boxplot(aes()) +
+  geom_jitter(width = 0.2)
+
+```
+
+Vyzerajú normálne rozdelené a aj tu sa ukazuje, že veľkosti ĽK zmerané na MR sú väčiše. Normalitu môžeme overiť napríklad Shapiro-Wilkovovovým testom.
+
+```{r}
+shapiro.test(Velkost_LK$LK_MR)
+shapiro.test(Velkost_LK$LK_ECHO)
+```
+
+LK_MR vyzerajú byť normálne rozdelené (p > 0,05). LK_ECHO má p < 0,05 a teda by sme mali zamietnuť H0 (H0 - naše dáta a normálne rozdelenie sa v strednej hodnote nelíšia). 
+
+
+Normalitu dát si môžeme overiť aj graficky.
+
+```{r}
+library(ggpubr)
+ggqqplot(Velkost_LK$LK_MR, title = "LK_MR" )
+ggqqplot(Velkost_LK$LK_ECHO, title = "LK_ECHO")
+```
+Tento graf zobrazuje koreláciu medzi našimi dátami a normálnym rozdelením.
+
+T test je robustný, tak môžeme použiť ten. Použijeme parový t test. Párový preto, lebo meriame rovnaký parameter na jednom pacientovi, len rozdielnymi metódami.
+H0 - stredná hodnota veľkosti ĽK je rovnaká u oboch metód.
+Ha - stredná hodnota veľkosti ĽK nie je rovnaká u oboch metód.
+
+```{r}
+paired_test <- t.test(Velkost_LK$LK_MR, Velkost_LK$LK_ECHO, paired = T)
+orig_t <- paired_test$statistic
+paired_test
+orig_t
+```
+
+
+Podľa p-hodnoty, nemôžeme zamietnuť nulovú hypotézu.
+
+
+V dátach máme údaje o ejekčnej frakcii a pýtame sa, či zalosť veľkosti ľavej komory (v cm) vie predpovedať, aká bude ejekčná frakcia (v %).
+
+To opäť môžeme urobiť lineárnym modelom.
+
+```{r}
+ggplot(Data, aes(x = LK_cm_MR, y = EF_MR)) +
+    geom_point() +
+    ggtitle("Súvis ejekčnej frakcie a veľkosti ĽK meranej pomocou MR")
+
+ggplot(Data, aes(x = LK_cm_ECHO, y = EF_ECHO)) +
+    geom_point() +
+    ggtitle("Súvis ejekčnej frakcie a veľkosti ĽK meranej pomocou ECHO")
+
+
+```
+
+```{r}
+fit1<- lm(LK_cm_MR ~ EF_MR, data = Data)
+summary(fit1)
+plot(fit1)
+```
+Ako vidíme smernica (0.01357) je veľmi blízka 0 a aj korelačný koeficient je blízky 0. To poukazuje na to, že medzi veľkosťou ĽK a ejekčnou frakciou (obe zmerané pomocou MR) nie je štatisticky významný súvis.
+```{r}
+fit2<- lm(LK_cm_ECHO ~ EF_ECHO, data = Data)
+summary(fit2)
+plot(fit2)
+```
+
+Obdobne je to aj pre metódu ECHO.
+
+
+Záver: T testom sme ukázali, že nie je štatisticky významný rozdiel medzi meraním veľkosti ľavej srdcovej komory pomocou magnetickej rezonancie a sonografie. Z vizualizácie dát sa ale ukázalo, že magnetickou rezonanciou sa v priemere meria väčšia veľkosť ľavej srdcovej komory ako sonografiou. Ďalej sme ukázali, že nie je štatisticky významná súvislosť medzi znalosťou veľkosti ĽK (v cm) a ejekčnou frakciou srdca (v %) meranou jednou metódou.
+
+
+
+
+# Popis dát č.2
+
+
+Dáta pochádzajú zo štúdie génu BRAF V600E. V mojej bakalárskej práci sme databázu využili a na dátach od pacientov sme ukázali, že tyreoglobulín je dobrým ukazovateľom perzistencie ochorenia.
+
+Retrospektívne sme analyzovali súbor 199 pacientov, ktorí boli operovaní a ďalej liečení v Onkologickom Ústave sv. Alžbety v Bratislave od roku 2009 do roku 2012. Všetkým pacientom bola vykonaná TTE s profylaktickou/terapeutickou disekciou lymfatických uzlín centrálneho krčného kompartmentu, u niektorých pacientov aj v kombinácii s disekciou lymfatických uzlín laterálneho krčného kompartmentu. Všetci pacienti následne podstúpili rádioabláciu zvyškového tkaniva ŠŽ pomocou 131I. Ak do pol roka po úvodnej tyreoeliminačnej dávke 131I bola u pacientov zistená detegovateľná hladina stimulovaného (endogénne alebo exogénne pomocou rhTSH) sérového Tg ≥ 1 ng/ml alebo  s vychytávaním 131I v oblasti lôžka po štítnej žľaze (> 1 % za 24 hodín), týmto pacientom bola podaná ďalšia dávka 131I za účelom odstránenia všetkého tkaniva ŠŽ.
+
+Ako koncový ukazovateľ sme brali perzistenciu ochorenia.
+V klinickej praxi sa považuje hladina tyreoglobulínu nad 5 ng/ml po odstránení všetkého tkaniva štítnej žľazy za ukazovateľ návratu ochorenia.
+
+Použité dáta pochádzajú zo štúdie, ktorá bola schválená lokálnou etickou komisiou a pacienti podpísali informovaný súhlas podľa legislatívnych požiadaviek. Využitie dát pre potreby našej práce bolo schválené inštitucionálnou etickou komisiou.
+
+
+V našej práci sme vytvorili ROC krivku pre diagnostický test (hladina tyreoglobulínu) a ukázali sme, že hladina TG 5 ng/ml je naozaj dobrá deliaca hodnota.
+
+```{r}
+library(readxl)
+Data1 <- read_excel("Data1.xlsx")
+View(Data1)
+head(Data1)
+```
+
+
+Poprosím Vás, ak vám nejdú načítať dáta rovno, prosím importujte si súbor Data1.xlsx z repozitára.
+
+
+
+Nás zaujímajú stĺpce Perzistence a TG.
+Persistence je dichotomická premenná (1 = perzistenicia ochorenia prítomná, 0 = perzistencia ochorenia neprítomná) a TG sú hladiny tyreoglobulínu jednotlivých pacientov v ng/ml.
+
+Najpr som si nainštalovala balík 'plotROC'. Poprosím Vás pridať si ho, ak ho nepoužívate.
+
+
+
+```{r}
+library(plotROC)
+
+ggplot(Data1, aes(d = Persistence , m = TG)) + 
+  geom_roc(n.cuts = 15, labelsize = 4, labelround = 2) +
+  style_roc(xlab = "1 - Špecificita", ylab = "Senzitivita")
+  
+
+```
+
+
+Z grafu vidíme, že pri deliacej hodnote (cut-off point) 4,9 ng/ml má náš diagnostický test najlepší výkon v zmysle vysokej senzitivity a zároveň vysokej špecificity.
+
+
+# Na koniec ešte pripájam vypracovanie jednej domácej úlohy, ktoré som robila v novembri.
+
+Zadanie hovorilo o dobe života troch typoch batérií pri troch rôznych prevádzkových teplotách.
+Meraná efektívna doba života (h) je porovnávaná s ohľadom na typ materiálu (A, B a C)  a prevádzkovú teplotu (nízku, strednú a vysokú). V dátach sme teplotu označili ako N, S a V.
+Z každého typu bolo náhodne vybraných 12 batérií a následne boli náhodne priradené k úrovniam teploty.
+
+
+Výskumná otázka: je rozdiel v dobe života pre rôzne typy materiálu a rôzne prevádzkové teploty?
+
+```{r}
+library(readxl)
+Data2 <- read_excel("Data2.xlsx")
+View(Data2)
+```
+
+Opäť ak Vám nefunguje URL, poprosím Vás načítať si Data2.xlsx z môjho repozitára.
+
+
+Pre takýto typ analýzy, nie je vhodné používať t testy, pretože s každým použitým testom narastá hladina významnosti α.
+Máme balansovaný dizajn a teda môžeme použiť analýzu variancie.
+
+Pozrieme si aké máme dáta a prípadne si ich upravíme.
+
+```{r}
+str(Data2)
+```
+
+Pre ANOVA potrebujeme, aby Typ a Teplota boli faktory.
+
+```{r}
+Data2$Typ <- factor(Data2$Typ)
+Data2$Teplota <- factor(Data2$Teplota)
+
+head(Data2)
+
+str(Data2)
+```
+
+Dáta si vizualizujeme.
+
+```{r}
+boxplot(Value ~ Typ * Teplota, data=Data2, frame = FALSE, xlab = "skupiny", ylab = "Doba života baterií")
+```
+
+Už z grafov je viditeľné, že je rozdiel medzi dobami života medzi jednotlivými materiálmi pri roznych prevádzkových teplotách.
+
+*Two way ANOVA with replications*
+
+```{r}
+anova <- aov(Value ~ Typ * Teplota, data = Data2)
+summary(anova)
+
+```
+
+Z p hodnôt vidíme, že typ materiálu a aj prevádzková teplota majú vlyv na dobu života.
+Z interakčnej  p-hodnoty vidíme, že interakcia medzi typom materiálu a prevádzkovou teplotou je štatisticky významná a tým pádom nemôžeme povedať, že teplota sama o sebe alebo typ materiálu sám o sebe  majú vplyv na dobu života.
+Musíme urobiť retreat, a vyhodncovať faktory samostatne a na to nám dobre poslúži interakčný graf.
+
+```{r}
+library("tidyverse")
+
+ggline(Data2, x = "Teplota", y = "Value", color = "Typ",
+       add = c("mean_se"),
+       palette = c("blue","red","green"),
+       xlab = "Teplota",
+       ylab = "Doba života")
+
+```
+
+Z interakčného grafu vidíme, že pre materiál A je vyššia doba života pri nízkej prevádzkovej teplote. Pri strednej a vysokej prevádzkovej teplote je doba života výrazne nižšia, avšak pre materiál A pri S a V teplote nie je rozdiel v dobe života.
+
+Pri materiály B vidíme, že doba života batérie zavísi na prevádzkovej teplote, pričom doba života batérie so zvyšujúcou sa teplotou klesá.
+
+Materiál C má najvyššiu dobu života pri vysokej teplote. Doby života pri N a S teplote sú výrazne nižšie ale sú približne rovnaké.
+
+Z grafu a dát ďalej vidíme, že faktory nie sú aditívne. 
+
+Záver:
+Naše dáta sme testovali pomocou analýzy variancie Two-way ANOVA with repeated measures. Keďže interakcia medzi našimi dvoma faktormi vyšla štatisticky význámná, nemôžeme povedať, že každý z faktorov má na dobu života vplyv  a teda ich účinok nie je aditívny. 
+
+Preto nemôžeme povedať, ktorý typ materiálu má najdlhšiu dobu života, ale doba života závisí od prevádzkovej teploty, pri ktorej sa batéria používa.
+
+
