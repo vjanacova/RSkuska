@@ -4,6 +4,8 @@ output:
   html_document:
     df_print: paged
 ---
+Poprosím Vás, stiahnite si repozitár a odtiaĽ otvorte súbory.
+
 
 ## Popis dat
 U 60 pacientov bola meranáveľkosť ľavej srdcovej komory pomocou dvoch rôznych diagnostických metód: Magnetická rezonancia (MR) a Sonografia (ECHO).
