@@ -4,14 +4,15 @@ output:
   html_document:
     df_print: paged
 ---
-Poprosím Vás, stiahnite si repozitár a odtiaĽ otvorte súbory.
 
 
 ## Popis dat
-U 60 pacientov bola meranáveľkosť ľavej srdcovej komory pomocou dvoch rôznych diagnostických metód: Magnetická rezonancia (MR) a Sonografia (ECHO).
+U 60 pacientov bola meraná veľkosť ľavej srdcovej komory pomocou dvoch rôznych diagnostických metód: Magnetická rezonancia (MR) a Sonografia (ECHO).
 Ďalej máme údaje o ejekčnej frakcii (EF) zmeranej pomocou MR a aj pomocou ECHA.
 
-Dataset mám z iného predmetu (spracovanie experimentálnych údajov 2014)
+Dataset mám z iného predmetu (spracovanie experimentálnych údajov 2014).
+
+
 
 Poprosím Vás, ak Vám to nefunguje, importujte si súbor Data.xlsx z repozitára.
 ```{r}
@@ -82,7 +83,7 @@ summary(Zeny_ECHO)
 
 ## Analýza
 
-Chceme zistiť, či je signifikantný rozdiel medzi zmeranou veľkosťou LK metódou MR a metódou ECHO. Môžeme sa na to pozrieť v rámci skupín (odlišné pohlavie) alebo celkovo.
+Chceme zistiť, či je signifikantný rozdiel medzi zmeranou veľkosťou ĽK metódou MR a metódou ECHO. Môžeme sa na to pozrieť v rámci skupín (odlišné pohlavie) alebo celkovo.
 To sa dá spraviť viacerými spôsobmi:
 
 a) iba správnou vizualizáciou dát,
@@ -131,7 +132,7 @@ Plot1 <-
 Plot1
 ```
 
-Z grafu vidíme, že priamka prechádza tak, 6e viac bodov je pod ňou a teda to nasvedčuje tomu, že MR ukazuje väčiu veľkosť ĽK ako ECHO.
+Z grafu vidíme, že priamka prechádza tak, že viac bodov je pod ňou a teda to nasvedčuje tomu, že MR ukazuje väčiu veľkosť ĽK ako ECHO.
 Takto isto sa na to možeme pozrieť pre obe pohlavia zvlášť. 
 
 ```{r}
@@ -252,7 +253,7 @@ orig_t
 ```
 
 
-Podľa p-hodnoty, nemôžeme zamietnuť nulovú hypotézu.
+Podľa p-hodnoty, nemôžeme zamietnuť nulovú hypotézu. A teda sa ukazuje, že štatisticky nie je významný rozdiel medzi MR a sonografiou pr meraní veľkosti ľavej srdcovej komory.
 
 
 V dátach máme údaje o ejekčnej frakcii a pýtame sa, či zalosť veľkosti ľavej komory (v cm) vie predpovedať, aká bude ejekčná frakcia (v %).
@@ -354,10 +355,10 @@ Data2 <- read_excel("Data2.xlsx")
 View(Data2)
 ```
 
-Opäť ak Vám nefunguje URL, poprosím Vás načítať si Data2.xlsx z môjho repozitára.
+Opäť ak Vám nefunguje táto relatívna cesta, poprosím Vás načítať si Data2.xlsx z môjho repozitára.
 
 
-Pre takýto typ analýzy, nie je vhodné používať t testy, pretože s každým použitým testom narastá hladina významnosti α.
+Pre takýto typ analýzy, nie je vhodné používať t testy. 
 Máme balansovaný dizajn a teda môžeme použiť analýzu variancie.
 
 Pozrieme si aké máme dáta a prípadne si ich upravíme.
