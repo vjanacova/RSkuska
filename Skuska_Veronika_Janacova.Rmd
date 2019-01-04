@@ -132,7 +132,7 @@ Plot1 <-
 Plot1
 ```
 
-Z grafu vidíme, že priamka prechádza tak, že viac bodov je pod ňou a teda to nasvedčuje tomu, že MR ukazuje väčiu veľkosť ĽK ako ECHO.
+Z grafu vidíme, že priamka prechádza tak, že viac bodov je pod ňou a teda to nasvedčuje tomu, že MR ukazuje väčiu veľkosť ĽK ako ECHO. To sa zhoduje s popisnou štatistikou, ktorá bola vyššie.
 Takto isto sa na to možeme pozrieť pre obe pohlavia zvlášť. 
 
 ```{r}
